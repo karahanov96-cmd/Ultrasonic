@@ -11,7 +11,9 @@ The current working app is a simple browser page:
 
 No patient database, no saved previous studies, and no medical platform workflow are required.
 
-## Included Report Logic
+## Included Modules
+
+### Adult Abdominal Ultrasound
 
 - Clinical indication dropdown:
   - Elevated liver enzymes
@@ -30,6 +32,30 @@ No patient database, no saved previous studies, and no medical platform workflow
 - Kidney, spleen, and abdominal aorta measurements
 - Copy report and print buttons
 - Dark mode
+
+### Thyroid Ultrasound
+
+- Clinical indication dropdown:
+  - Neck swelling
+  - Thyroid nodule follow-up
+  - Abnormal thyroid function tests
+  - Hashimoto thyroiditis
+  - Graves disease
+  - Dysphagia
+  - Neck pain
+  - Screening
+  - Other
+- Right and left thyroid lobe volume calculation:
+  - `Volume = L x W x D x 0.479`
+- Total thyroid volume
+- Parenchymal echotexture, echogenicity, and vascularity
+- Thyroiditis options for chronic autoimmune thyroiditis and Graves disease
+- Multiple thyroid nodules
+- Automatic ACR TI-RADS scoring and category
+- ACR TI-RADS FNA and follow-up recommendations
+- Suspicious cervical lymph node section
+- ICD-10 output
+- Validation warnings for incomplete nodule dimensions and incomplete suspicious lymph node features
 
 ## Use
 
