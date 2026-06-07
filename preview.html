@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ultrasound Report Generator</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --panel: #fff;
+        --muted-panel: #eef2f4;
+        --text: #172026;
+        --muted: #61707a;
+        --line: #d7dee3;
+        --accent: #147c72;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #111416;
+        --panel: #1b2024;
+        --muted-panel: #242b30;
+        --text: #edf2f4;
+        --muted: #a3b0b8;
+        --line: #313b42;
+        --accent: #4bb7a8;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); }
+      button, input, select, textarea { font: inherit; }
+
+      header {
+        align-items: center;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        padding: 18px 24px;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      h1, h2 { margin: 0; }
+      h1 { font-size: clamp(1.35rem, 2vw, 2rem); }
+      h2 { font-size: 1rem; }
+      .eyebrow { color: var(--accent); font-size: .78rem; font-weight: 700; margin: 0 0 4px; text-transform: uppercase; }
+
+      .summary {
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        padding: 12px 24px;
+      }
+
+      .layout {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(480px, 1fr) minmax(390px, .85fr);
+        padding: 16px;
+      }
+
+      .form {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .panel, .report {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .full { grid-column: 1 / -1; }
+      .grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; }
+      label { display: grid; gap: 6px; }
+      label span { color: var(--muted); font-size: .8rem; font-weight: 700; }
+      input, select, textarea {
+        background: var(--muted-panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+        min-height: 38px;
+        padding: 8px 10px;
+        width: 100%;
+      }
+
+      .toggle {
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        min-height: 38px;
+        padding: 8px 10px;
+      }
+
+      .toggle input { height: 16px; min-height: 16px; width: 16px; }
+      .toolbar { align-items: center; display: flex; gap: 8px; }
+      button {
+        background: var(--muted-panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+        cursor: pointer;
+        min-height: 38px;
+        padding: 8px 12px;
+      }
+      button:hover { border-color: var(--accent); color: var(--accent); }
+      .primary { background: var(--accent); border-color: var(--accent); color: white; }
+
+      .report {
+        align-self: start;
+        display: grid;
+        gap: 12px;
+        position: sticky;
+        top: 88px;
+      }
+
+      .report textarea {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: .86rem;
+        line-height: 1.55;
+        min-height: 68vh;
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 1100px) {
+        .layout, .form, .grid { grid-template-columns: 1fr; }
+        .report { position: static; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Abdominal ultrasound text builder</p>
+        <h1>Ultrasound Report Generator</h1>
+      </div>
+      <div class="toolbar">
+        <button id="reset" type="button">Reset</button>
+        <button id="theme" type="button">Dark mode</button>
+      </div>
+    </header>
+
+    <div class="summary">
+      Лёгкое веб-приложение без базы пациентов и сохранения обследований. Заполните измерения и выберите основные изменения, затем скопируйте готовый report во встроенную программу.
+    </div>
+
+    <main class="layout">
+      <section class="form">
+        <section class="panel full">
+          <h2>Exam</h2>
+          <div class="grid">
+            <label class="full">
+              <span>Clinical indication</span>
+              <select id="indication">
+                <option value="Elevated liver enzymes">Elevated liver enzymes</option>
+                <option value="Abdominal pain" selected>Abdominal pain</option>
+                <option value="Gallbladder disease">Gallbladder disease</option>
+                <option value="Flank pain">Flank pain</option>
+                <option value="Health check-up">Health check-up</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Liver</h2>
+          <div class="grid">
+            <label><span>Liver length, cm</span><input id="liverLength" type="number" step="0.1" value="14.8" /></label>
+            <label>
+              <span>Echogenicity</span>
+              <select id="steatosis">
+                <option value="normal">Normal</option>
+                <option value="mild" selected>Mild steatosis</option>
+                <option value="moderate">Moderate steatosis</option>
+                <option value="severe">Severe steatosis</option>
+              </select>
+            </label>
+            <label>
+              <span>Focal lesion</span>
+              <select id="liverLesion">
+                <option value="none" selected>None</option>
+                <option value="cyst">Cyst</option>
+                <option value="hemangioma">Hemangioma</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Gallbladder</h2>
+          <div class="grid">
+            <label><span>Wall thickness, mm</span><input id="gbWall" type="number" step="0.1" value="2.4" /></label>
+            <label class="toggle"><input id="stones" type="checkbox" /><span>Gallstones</span></label>
+            <label><span>Largest stone, mm</span><input id="stoneSize" type="number" step="1" /></label>
+            <label class="toggle"><input id="sludge" type="checkbox" /><span>Sludge</span></label>
+            <label class="toggle"><input id="polyp" type="checkbox" /><span>Polyp</span></label>
+            <label><span>Largest polyp, mm</span><input id="polypSize" type="number" step="1" /></label>
+            <label>
+              <span>Murphy sign</span>
+              <select id="murphy"><option value="negative" selected>Negative</option><option value="positive">Positive</option></select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>CBD and Pancreas</h2>
+          <div class="grid">
+            <label><span>CBD diameter, mm</span><input id="cbd" type="number" step="0.1" value="4" /></label>
+            <label>
+              <span>Pancreas</span>
+              <select id="pancreas">
+                <option value="normal" selected>Normal</option>
+                <option value="diffuse">Diffuse changes</option>
+                <option value="lipomatosis">Lipomatosis</option>
+                <option value="chronic">Chronic pancreatitis features</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Kidneys</h2>
+          <div class="grid">
+            <label><span>Right length, cm</span><input id="rkL" type="number" step="0.1" value="10.7" /></label>
+            <label><span>Right width, cm</span><input id="rkW" type="number" step="0.1" value="5.1" /></label>
+            <label><span>Right AP, cm</span><input id="rkAP" type="number" step="0.1" value="4.2" /></label>
+            <label><span>Left length, cm</span><input id="lkL" type="number" step="0.1" value="10.9" /></label>
+            <label><span>Left width, cm</span><input id="lkW" type="number" step="0.1" value="5.0" /></label>
+            <label><span>Left AP, cm</span><input id="lkAP" type="number" step="0.1" value="4.1" /></label>
+            <label class="toggle"><input id="renalStone" type="checkbox" /><span>Renal stone</span></label>
+            <label>
+              <span>Hydronephrosis</span>
+              <select id="hydronephrosis">
+                <option value="none" selected>None</option>
+                <option value="grade I">Grade I</option>
+                <option value="grade II">Grade II</option>
+                <option value="grade III">Grade III</option>
+                <option value="grade IV">Grade IV</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Spleen and Aorta</h2>
+          <div class="grid">
+            <label><span>Spleen length, cm</span><input id="spleenL" type="number" step="0.1" value="10.8" /></label>
+            <label><span>Spleen width, cm</span><input id="spleenW" type="number" step="0.1" value="4.2" /></label>
+            <label><span>Spleen thickness, cm</span><input id="spleenT" type="number" step="0.1" value="3.8" /></label>
+            <label><span>Aorta proximal, cm</span><input id="aortaP" type="number" step="0.1" value="2.0" /></label>
+            <label><span>Aorta mid, cm</span><input id="aortaM" type="number" step="0.1" value="1.8" /></label>
+            <label><span>Aorta distal, cm</span><input id="aortaD" type="number" step="0.1" value="1.6" /></label>
+          </div>
+        </section>
+
+        <section class="panel full">
+          <h2>Additional Comments</h2>
+          <div class="grid">
+            <label class="full"><span>Optional text</span><textarea id="comments" rows="3"></textarea></label>
+          </div>
+        </section>
+      </section>
+
+      <aside class="report">
+        <div class="toolbar">
+          <strong id="status">Generated report</strong>
+          <button id="copy" class="primary" type="button">Copy report</button>
+          <button onclick="window.print()" type="button">Print</button>
+        </div>
+        <textarea id="report" readonly></textarea>
+      </aside>
+    </main>
+
+    <script>
+      const ids = [
+        "indication", "liverLength", "steatosis", "liverLesion", "gbWall", "stones", "stoneSize", "sludge", "polyp",
+        "polypSize", "murphy", "cbd", "pancreas", "rkL", "rkW", "rkAP", "lkL", "lkW", "lkAP", "renalStone", "hydronephrosis",
+        "spleenL", "spleenW", "spleenT", "aortaP", "aortaM", "aortaD", "comments"
+      ];
+
+      const el = (id) => document.getElementById(id);
+      const num = (id) => {
+        const value = Number(el(id).value);
+        return Number.isFinite(value) && el(id).value !== "" ? value : null;
+      };
+      const fmt = (value, unit, decimals = 1) => value == null ? "not recorded" : `${value.toFixed(decimals)} ${unit}`;
+      const vol = (a, b, c) => a && b && c ? a * b * c * 0.523 : null;
+
+      function steatosis(level) {
+        return {
+          normal: ["normal echogenicity", "", ""],
+          mild: ["mildly increased echogenicity consistent with mild diffuse hepatic steatosis", "Mild diffuse hepatic steatosis.", "Lifestyle modification and metabolic risk assessment are advised."],
+          moderate: ["moderately increased echogenicity consistent with moderate diffuse hepatic steatosis", "Moderate diffuse hepatic steatosis.", "Lifestyle modification, metabolic risk assessment, and clinical follow-up are advised."],
+          severe: ["markedly increased echogenicity consistent with severe diffuse hepatic steatosis", "Severe diffuse hepatic steatosis.", "Metabolic risk assessment and hepatology/clinical follow-up should be considered."]
+        }[level];
+      }
+
+      function liverSize(lengthCm) {
+        if (lengthCm == null) return ["liver size cannot be classified as liver length is not recorded", ""];
+        if (lengthCm <= 15.5) return ["normal liver size", ""];
+        if (lengthCm <= 17.0) return ["mild hepatomegaly", "Mild hepatomegaly."];
+        return ["hepatomegaly", "Hepatomegaly."];
+      }
+
+      function buildReport() {
+        const findings = [];
+        const conclusions = [];
+        const recommendations = [];
+        const liver = steatosis(el("steatosis").value);
+        const liverSizeResult = liverSize(num("liverLength"));
+        let liverText = `The liver measures ${fmt(num("liverLength"), "cm")} in craniocaudal length in the midclavicular line, consistent with ${liverSizeResult[0]}, and demonstrates ${liver[0]}.`;
+        if (liverSizeResult[1]) conclusions.push(liverSizeResult[1]);
+        const lesion = el("liverLesion").value;
+        if (lesion === "none") liverText += " No focal hepatic lesion is identified.";
+        else conclusions.push({ cyst: "Simple hepatic cyst.", hemangioma: "Hepatic haemangioma.", other: "Focal hepatic lesion." }[lesion]);
+        findings.push(liverText);
+        if (liver[1]) conclusions.push(liver[1]);
+        if (liver[2]) recommendations.push(liver[2]);
+
+        let gbText = `Gallbladder wall thickness measures ${fmt(num("gbWall"), "mm")}.`;
+        gbText += el("stones").checked ? ` Gallstones are present${num("stoneSize") ? `, largest measuring ${fmt(num("stoneSize"), "mm", 0)}` : ""}.` : " No gallstones are seen.";
+        if (el("stones").checked) conclusions.push("Cholelithiasis.");
+        if (el("sludge").checked) {
+          gbText += " Biliary sludge is present.";
+          conclusions.push("Gallbladder sludge.");
+        }
+        if (el("polyp").checked) {
+          gbText += ` A non-shadowing gallbladder polyp measures ${fmt(num("polypSize"), "mm", 0)}.`;
+          conclusions.push(`${fmt(num("polypSize"), "mm", 0)} gallbladder polyp.`);
+          const size = num("polypSize");
+          if (size != null && size < 6) recommendations.push("No routine follow-up is required for a gallbladder polyp under 6 mm.");
+          else if (size != null && size < 10) recommendations.push("Repeat ultrasound is advised for a 6-9 mm gallbladder polyp.");
+          else if (size != null) recommendations.push("Surgical consultation is advised for a gallbladder polyp measuring 10 mm or larger.");
+        }
+        if (el("murphy").value === "positive") {
+          gbText += " Sonographic Murphy sign is positive.";
+          recommendations.push("Correlate clinically for acute cholecystitis.");
+        }
+        findings.push(gbText);
+
+        const cbd = num("cbd");
+        if (cbd == null || cbd <= 6) findings.push(`The common bile duct measures ${fmt(cbd, "mm")} and is not dilated.`);
+        else if (cbd <= 8) {
+          findings.push(`The common bile duct measures ${fmt(cbd, "mm")} and is mildly dilated.`);
+          conclusions.push("Mild common bile duct dilatation.");
+          recommendations.push("Correlate with liver function tests.");
+        } else {
+          findings.push(`The common bile duct measures ${fmt(cbd, "mm")} and is dilated.`);
+          conclusions.push("Common bile duct dilatation.");
+          recommendations.push("Correlate with liver function tests; consider MRCP if clinically indicated.");
+        }
+
+        findings.push({
+          normal: "Pancreas appears unremarkable.",
+          diffuse: "Pancreas demonstrates diffuse parenchymal change.",
+          lipomatosis: "Pancreas is echogenic in keeping with fatty replacement.",
+          chronic: "Pancreas demonstrates features suggestive of chronic pancreatitis."
+        }[el("pancreas").value]);
+
+        const rv = vol(num("rkL"), num("rkW"), num("rkAP"));
+        const lv = vol(num("lkL"), num("lkW"), num("lkAP"));
+        findings.push(`Right kidney measures ${fmt(num("rkL"), "cm")} x ${fmt(num("rkW"), "cm")} x ${fmt(num("rkAP"), "cm")}${rv ? `, volume ${rv.toFixed(1)} mL` : ""}. Left kidney measures ${fmt(num("lkL"), "cm")} x ${fmt(num("lkW"), "cm")} x ${fmt(num("lkAP"), "cm")}${lv ? `, volume ${lv.toFixed(1)} mL` : ""}.`);
+        if (el("renalStone").checked) conclusions.push("Nephrolithiasis.");
+        if (el("hydronephrosis").value !== "none") conclusions.push(`${el("hydronephrosis").value} hydronephrosis.`);
+        if (!el("renalStone").checked && el("hydronephrosis").value === "none") findings.push("No renal calculus or hydronephrosis is identified.");
+
+        const sv = vol(num("spleenL"), num("spleenW"), num("spleenT"));
+        findings.push(`Spleen measures ${fmt(num("spleenL"), "cm")} x ${fmt(num("spleenW"), "cm")} x ${fmt(num("spleenT"), "cm")}${sv ? `, volume ${sv.toFixed(1)} mL` : ""}.`);
+        if (num("spleenL") >= 13) conclusions.push("Splenomegaly.");
+        else if (num("spleenL") >= 12) conclusions.push("Mild splenomegaly.");
+
+        const maxAorta = Math.max(...[num("aortaP"), num("aortaM"), num("aortaD")].filter((item) => item != null));
+        findings.push(`Abdominal aorta measures up to ${Number.isFinite(maxAorta) ? maxAorta.toFixed(1) + " cm" : "not recorded"}. ${Number.isFinite(maxAorta) && maxAorta >= 3 ? "Abdominal aortic aneurysm is present." : "No abdominal aortic aneurysm is identified."}`);
+        if (Number.isFinite(maxAorta) && maxAorta >= 3) conclusions.push("Abdominal aortic aneurysm.");
+        if (el("comments").value.trim()) findings.push(el("comments").value.trim());
+
+        el("report").value = `ABDOMINAL ULTRASOUND
+
+CLINICAL INDICATION
+${el("indication").value || "Not provided."}
+
+FINDINGS
+${findings.join("\n\n")}
+
+CONCLUSION
+${conclusions.length ? conclusions.map((item, index) => `${index + 1}. ${item}`).join("\n") : "1. No significant sonographic abnormality identified."}
+
+RECOMMENDATIONS
+${recommendations.length ? recommendations.map((item) => `- ${item}`).join("\n") : "- No specific ultrasound follow-up is required unless clinically indicated."}`;
+      }
+
+      ids.forEach((id) => {
+        el(id).addEventListener("input", buildReport);
+        el(id).addEventListener("change", buildReport);
+      });
+      el("copy").addEventListener("click", async () => {
+        await navigator.clipboard.writeText(el("report").value);
+        el("status").textContent = "Copied";
+        setTimeout(() => (el("status").textContent = "Generated report"), 1600);
+      });
+      el("reset").addEventListener("click", () => location.reload());
+      el("theme").addEventListener("click", () => {
+        document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      });
+      buildReport();
+    </script>
+  </body>
+</html>
